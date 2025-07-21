@@ -2,6 +2,8 @@ from django.contrib.auth.models import AbstractUser
 from django.db import models
 
 class User(AbstractUser):
+    username = models.CharField(max_length=100, unique=True)
+    password = models.CharField(max_length=100)
     # Настройки игрока
     animation_enabled = models.BooleanField(default=True)
     auto_save_enabled = models.BooleanField(default=True)
@@ -36,7 +38,7 @@ class SlimeType(models.Model):
     ]
     
     name = models.CharField(max_length=100, unique=True)
-    image = models.ImageField(upload_to='slimes/')  # Путь к файлу в media/slimes/
+    image = models.ImageField(upload_to='slimes/', null=True, blank=True)  # Путь к файлу в media/slimes/
     chance = models.CharField(max_length=50)  # Формат "1/1000"
     rarity = models.CharField(max_length=20, choices=RARITY_CHOICES)
     base_amount = models.PositiveIntegerField(default=0)  # Для начальных значений
@@ -47,13 +49,23 @@ class SlimeType(models.Model):
     class Meta:
         verbose_name = "Тип слайма"
         verbose_name_plural = "Типы слаймов"
-        ordering = ['rarity']
+        ordering = ['chance']
 
 class CraftRecipe(models.Model):
+    EFFECT_TYPE_CHOICES = [
+        ('harvestMultiplier', 'harvestMultiplier'),
+        ('spinCooldown', 'spinCooldown'),
+        ('rareChanceBoost', 'rareChanceBoost'),
+        ('epicChanceBoost', 'epicChanceBoost'),
+        ('divineChanceMultiplier', 'divineChanceMultiplier')
+    ]
+
     name = models.CharField(max_length=100)
-    image = models.URLField(max_length=500)
+    image = models.ImageField(upload_to='craft-items/', null=True, blank=True)
     effect = models.TextField()
     created_by_default = models.BooleanField(default=False)
+    effect_type = models.CharField(max_length=50, choices=EFFECT_TYPE_CHOICES, null=True, blank=True)
+    effect_value = models.FloatField(null=True, blank=True)
     
     def __str__(self):
         return self.name
@@ -66,6 +78,9 @@ class CraftIngredient(models.Model):
     recipe = models.ForeignKey(CraftRecipe, on_delete=models.CASCADE, related_name='ingredients')
     slime_type = models.ForeignKey(SlimeType, on_delete=models.CASCADE)
     amount = models.PositiveIntegerField()
+
+    def __str__(self):
+        return f"{self.recipe.name} - {self.slime_type.name} - {self.amount}"
     
     class Meta:
         unique_together = ('recipe', 'slime_type')
@@ -73,10 +88,23 @@ class CraftIngredient(models.Model):
         verbose_name_plural = "Ингредиенты крафта"
 
 class Collection(models.Model):
+    EFFECT_TYPE_CHOICES = [
+        ('harvestMultiplier', 'harvestMultiplier'),
+        ('spinCooldown', 'spinCooldown'),
+        ('rareChanceBoost', 'rareChanceBoost'),
+        ('epicChanceBoost', 'epicChanceBoost'),
+        ('mythicChanceBoost', 'mythicChanceBoost'),
+        ('divineChanceMultiplier', 'divineChanceMultiplier')
+    ]
+
     name = models.CharField(max_length=100)
     description = models.TextField()
-    thumbnail = models.URLField(max_length=500)
+    thumbnail = models.ImageField(upload_to='collections/', null=True, blank=True)
     reward = models.TextField()
+    effect_type = models.CharField(max_length=50, choices=EFFECT_TYPE_CHOICES, null=True, blank=True)
+    effect_value = models.FloatField(null=True, blank=True)
+    completed = models.BooleanField(default=False)
+    claimed = models.BooleanField(default=False)
     
     def __str__(self):
         return self.name
