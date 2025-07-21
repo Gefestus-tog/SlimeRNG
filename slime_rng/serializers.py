@@ -39,7 +39,7 @@ class CraftIngredientSerializer(serializers.ModelSerializer):
         fields = ['slime_type', 'amount']
 
 class CraftRecipeSerializer(serializers.ModelSerializer):
-    ingredients = CraftIngredientSerializer(many=True, source='ingredients')
+    ingredients = CraftIngredientSerializer(many=True)
     
     class Meta:
         model = CraftRecipe
@@ -53,7 +53,7 @@ class CollectionRequirementSerializer(serializers.ModelSerializer):
         fields = ['slime_type', 'amount']
 
 class CollectionSerializer(serializers.ModelSerializer):
-    requirements = CollectionRequirementSerializer(many=True, source='requirements')
+    requirements = CollectionRequirementSerializer(many=True)
     
     class Meta:
         model = Collection

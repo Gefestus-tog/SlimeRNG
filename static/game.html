@@ -728,6 +728,7 @@
     let isSpinning = false;
     let spinQueue = 0;
     let autoSaveInterval;
+    let isSaving = false;
     
     // Чит-коды
     const cheatCodes = {
@@ -788,7 +789,7 @@
                 headers: { 'Authorization': `Token ${authToken}` }
             });
             const data = response.data;
-            
+
             // Обновление состояния игры
             gameState = {
                 ...gameState,
@@ -810,7 +811,7 @@
             // Обновление крафтов
             CRAFTS = data.crafts.map(craftItem => ({
                 ...craftItem.recipe,
-                created: true,
+                created: craftItem.created,
                 image: `${API_URL}${craftItem.recipe.image}`,
                 cost: craftItem.recipe.ingredients.map(ing => ({
                     name: ing.slime_type.name,
@@ -833,13 +834,17 @@
             // Обновление интерфейса
             updateAnimationToggle();
             renderAll();
-            updateActiveEffects();
+            renderActiveEffects();
         } catch (error) {
             console.error('Ошибка загрузки данных:', error);
         }
     }
 
     async function saveGame() {
+        if (isSaving) return;
+        isSaving = true;
+        saveButton.textContent = "Сохранение...";
+
         const saveData = {
             user: {
                 animation_enabled: gameState.animationEnabled,
@@ -875,6 +880,11 @@
             console.log("Игра сохранена на сервере");
         } catch (error) {
             console.error('Ошибка сохранения:', error);
+        } finally {
+            setTimeout(() => {
+                isSaving = false;
+                saveButton.textContent = "Сохранить";
+            }, 1000);
         }
     }
 
@@ -886,18 +896,6 @@
             return true;
         } catch (error) {
             console.error('Ошибка крафта:', error);
-            return false;
-        }
-    }
-
-    async function claimCollectionOnServer(collectionId) {
-        try {
-            await axios.post(`${API_URL}/api/claim-collection/${collectionId}/`, {}, {
-                headers: { 'Authorization': `Token ${authToken}` }
-            });
-            return true;
-        } catch (error) {
-            console.error('Ошибка получения награды:', error);
             return false;
         }
     }
@@ -1057,7 +1055,6 @@
         }
         
         console.log(`Получено ${count} ${selectedSlime.name}`);
-        saveGame();
     }
 
     function updateSlimeDisplay(slime) {
@@ -1158,6 +1155,7 @@
 
     // Отображение рецептов крафта
     function renderCrafter() {
+        console.log('CRAFTS:', CRAFTS);
         crafter.innerHTML = "";
         
         CRAFTS.forEach((craft, index) => {
@@ -1324,16 +1322,12 @@
         const collection = COLLECTIONS.find(c => c.id === collectionId);
         if (!collection || !collection.completed || collection.claimed) return;
         
-        try {
-            const success = await claimCollectionOnServer(collectionId);
-            if (success) {
-                collection.claimed = true;
-                saveGame();
-                renderCollections();
-            }
-        } catch (error) {
-            console.error('Ошибка получения награды:', error);
+        if (success) {
+            collection.claimed = true;
+            saveGame();
+            renderCollections();
         }
+        
     }
 
     function renderIndex() {

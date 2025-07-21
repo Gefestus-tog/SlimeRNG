@@ -4,14 +4,35 @@ from rest_framework.views import APIView
 from rest_framework.authtoken.models import Token
 from django.contrib.auth import authenticate, login, logout
 from django.db import transaction
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
 from .models import *
 from .serializers import *
 
 class RegisterView(APIView):
+    permission_classes = [permissions.AllowAny]
+    
+    @transaction.atomic
     def post(self, request):
         serializer = UserSerializer(data=request.data)
         if serializer.is_valid():
             user = serializer.save()
+            
+            # Создание инвентаря для всех типов слаймов
+            all_slime_types = SlimeType.objects.all()
+            for slime_type in all_slime_types:
+                PlayerInventory.objects.create(player=user, slime_type=slime_type, amount=slime_type.base_amount)
+            
+            # Создание записей для всех коллекций
+            all_collections = Collection.objects.all()
+            for collection in all_collections:
+                PlayerCollection.objects.create(player=user, collection=collection)
+            
+            # Создание предметов по умолчанию
+            default_crafts = CraftRecipe.objects.all()
+            for craft in default_crafts:
+                PlayerCraft.objects.create(player=user, recipe=craft)
+
             token, created = Token.objects.get_or_create(user=user)
             return Response({
                 'token': token.key,
@@ -21,6 +42,7 @@ class RegisterView(APIView):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class LoginView(APIView):
+    permission_classes = [permissions.AllowAny]
     def post(self, request):
         serializer = LoginSerializer(data=request.data)
         if serializer.is_valid():
@@ -49,29 +71,29 @@ class LogoutView(APIView):
 class SlimeTypeViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = SlimeType.objects.all()
     serializer_class = SlimeTypeSerializer
-    permission_classes = [permissions.AllowAny]
 
 class CraftRecipeViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = CraftRecipe.objects.prefetch_related('ingredients__slime_type').all()
     serializer_class = CraftRecipeSerializer
-    permission_classes = [permissions.AllowAny]
 
 class CollectionViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Collection.objects.prefetch_related('requirements__slime_type').all()
     serializer_class = CollectionSerializer
-    permission_classes = [permissions.AllowAny]
 
-class PlayerInventoryView(APIView):
+class PlayerInventoryViewSet(viewsets.ModelViewSet):
+    serializer_class = PlayerInventorySerializer
     permission_classes = [permissions.IsAuthenticated]
 
+    def get_queryset(self):
+        return PlayerInventory.objects.filter(player=self.request.user)
+
+class PlayerInventoryView(APIView):
     def get(self, request):
         inventory = PlayerInventory.objects.filter(player=request.user)
         serializer = PlayerInventorySerializer(inventory, many=True)
         return Response(serializer.data)
 
 class CraftItemView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
-
     @transaction.atomic
     def post(self, request, recipe_id):
         try:
@@ -131,8 +153,6 @@ def apply_recipe_effect(user, recipe):
     user.save()
 
 class ClaimCollectionView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
-
     @transaction.atomic
     def post(self, request, collection_id):
         try:
@@ -195,8 +215,7 @@ def apply_collection_effect(user, collection):
     user.save()
 
 class SaveGameView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
-
+    @transaction.atomic
     def post(self, request):
         # Сохранение состояния пользователя
         user_serializer = UserSerializer(request.user, data=request.data.get('user'), partial=True)
@@ -233,15 +252,21 @@ class SaveGameView(APIView):
         return Response(status=status.HTTP_200_OK)
 
 class LoadGameView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
-
     def get(self, request):
+        with transaction.atomic():
+            all_slime_types = SlimeType.objects.all()
+            for slime_type in all_slime_types:
+                PlayerInventory.objects.get_or_create(player=request.user, slime_type=slime_type)
+            
+            default_crafts = CraftRecipe.objects.filter(created_by_default=True)
+            for craft in default_crafts:
+                PlayerCraft.objects.get_or_create(player=request.user, recipe=craft)
+
+        inventory_qs = PlayerInventory.objects.filter(player=request.user).order_by('slime_type__id')
+
         data = {
             'user': UserSerializer(request.user).data,
-            'inventory': PlayerInventorySerializer(
-                PlayerInventory.objects.filter(player=request.user),
-                many=True
-            ).data,
+            'inventory': PlayerInventorySerializer(inventory_qs, many=True).data,
             'crafts': PlayerCraftSerializer(
                 PlayerCraft.objects.filter(player=request.user),
                 many=True

@@ -6,13 +6,13 @@ router = DefaultRouter()
 router.register(r'slimes', views.SlimeTypeViewSet)
 router.register(r'crafts', views.CraftRecipeViewSet)
 router.register(r'collections', views.CollectionViewSet)
+router.register(r'inventory', views.PlayerInventoryViewSet, basename='inventory')
 
 urlpatterns = [
     path('register/', views.RegisterView.as_view(), name='register'),
     path('login/', views.LoginView.as_view(), name='login'),
     path('logout/', views.LogoutView.as_view(), name='logout'),
     
-    path('inventory/', views.PlayerInventoryView.as_view(), name='inventory'),
     path('craft/<int:recipe_id>/', views.CraftItemView.as_view(), name='craft'),
     path('claim-collection/<int:collection_id>/', views.ClaimCollectionView.as_view(), name='claim-collection'),
     path('save/', views.SaveGameView.as_view(), name='save-game'),
