@@ -13,7 +13,6 @@ urlpatterns = [
     path('login/', views.LoginView.as_view(), name='login'),
     path('logout/', views.LogoutView.as_view(), name='logout'),
     
-    path('craft/<int:recipe_id>/', views.CraftItemView.as_view(), name='craft'),
     path('claim-collection/<int:collection_id>/', views.ClaimCollectionView.as_view(), name='claim-collection'),
     path('save/', views.SaveGameView.as_view(), name='save-game'),
     path('load/', views.LoadGameView.as_view(), name='load-game'),

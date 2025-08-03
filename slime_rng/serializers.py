@@ -61,6 +61,7 @@ class CollectionSerializer(serializers.ModelSerializer):
 
 class PlayerInventorySerializer(serializers.ModelSerializer):
     slime_type = SlimeTypeSerializer()
+    is_completed = serializers.BooleanField()
     
     class Meta:
         model = PlayerInventory

@@ -140,8 +140,8 @@ class PlayerInventory(models.Model):
 class PlayerCraft(models.Model):
     player = models.ForeignKey(User, on_delete=models.CASCADE, related_name='crafts')
     recipe = models.ForeignKey(CraftRecipe, on_delete=models.CASCADE)
-    created = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
+    is_completed = models.BooleanField(default=False)
     
     class Meta:
         unique_together = ('player', 'recipe')

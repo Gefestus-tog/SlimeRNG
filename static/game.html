@@ -811,7 +811,7 @@
             // Обновление крафтов
             CRAFTS = data.crafts.map(craftItem => ({
                 ...craftItem.recipe,
-                created: craftItem.created,
+                created: craftItem.is_completed,
                 image: `${API_URL}${craftItem.recipe.image}`,
                 cost: craftItem.recipe.ingredients.map(ing => ({
                     name: ing.slime_type.name,
@@ -860,17 +860,19 @@
                 divine_chance_multiplier: gameState.divineChanceMultiplier
             },
             inventory: SLIMES.map(slime => ({
-                slime_type: { id: slime.id },
-                amount: slime.amount
+            slime_type: { id: slime.id },
+            amount: slime.amount
             })),
-            crafts: CRAFTS.filter(craft => craft.created).map(craft => ({
-                recipe: { id: craft.id }
+            crafts: CRAFTS.map(craft => ({
+                recipe: { id: craft.id },
+                is_completed: Boolean(craft.created), // Исправлено поле и тип данных
             })),
             collections: COLLECTIONS.map(collection => ({
                 collection: { id: collection.id },
-                completed: collection.completed,
-                claimed: collection.claimed
+                completed: Boolean(collection.completed),
+                claimed: Boolean(collection.claimed)
             }))
+
         };
         
         try {
@@ -885,18 +887,6 @@
                 isSaving = false;
                 saveButton.textContent = "Сохранить";
             }, 1000);
-        }
-    }
-
-    async function craftItemOnServer(craftId) {
-        try {
-            await axios.post(`${API_URL}/api/craft/${craftId}/`, {}, {
-                headers: { 'Authorization': `Token ${authToken}` }
-            });
-            return true;
-        } catch (error) {
-            console.error('Ошибка крафта:', error);
-            return false;
         }
     }
 
@@ -1213,8 +1203,7 @@
         
         if (canCraft) {
             try {
-                const success = await craftItemOnServer(craft.id);
-                if (success) {
+                
                     craft.cost.forEach(item => {
                         const slime = SLIMES.find(s => s.name === item.name);
                         if (slime) slime.amount -= item.amount;
@@ -1224,7 +1213,7 @@
                     renderCrafter();
                     if (inventoryOpen) renderInventory();
                     renderActiveEffects();
-                }
+                
             } catch (e) {
                 console.error("Ошибка при создании предмета:", e);
             }

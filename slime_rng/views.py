@@ -8,6 +8,8 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from .models import *
 from .serializers import *
+from django.utils.dateparse import parse_datetime
+from django.utils import timezone
 
 class RegisterView(APIView):
     permission_classes = [permissions.AllowAny]
@@ -214,6 +216,8 @@ def apply_collection_effect(user, collection):
         user.divine_chance_multiplier *= collection.effect_value
     user.save()
 
+
+
 class SaveGameView(APIView):
     @transaction.atomic
     def post(self, request):
@@ -231,11 +235,36 @@ class SaveGameView(APIView):
                 defaults={'amount': item_data['amount']}
             )
         
-        # Сохранение крафтов
+        # Сохранение крафтов (с обработкой created и ошибок)
         PlayerCraft.objects.filter(player=request.user).delete()
+        crafts_to_create = []
         for craft_data in request.data.get('crafts', []):
-            recipe = CraftRecipe.objects.get(id=craft_data['recipe']['id'])
-            PlayerCraft.objects.create(player=request.user, recipe=recipe)
+            try:
+                recipe = CraftRecipe.objects.get(id=craft_data['recipe']['id'])
+                
+                # Обработка поля created
+                created_value = craft_data.get('created')
+                if isinstance(created_value, str):
+                    created = parse_datetime(created_value) or timezone.now()
+                elif created_value:
+                    # Если пришло что-то неожиданное (число или объект)
+                    created = timezone.now()
+                else:
+                    created = timezone.now()
+                
+                crafts_to_create.append(
+                    PlayerCraft(
+                        player=request.user,
+                        recipe=recipe,
+                        created_at=created,
+                        is_completed=True
+                    )
+                )
+            except (KeyError, CraftRecipe.DoesNotExist):
+                # Пропускаем невалидные записи
+                continue
+        
+        PlayerCraft.objects.bulk_create(crafts_to_create)
         
         # Сохранение коллекций
         for col_data in request.data.get('collections', []):
