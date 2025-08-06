@@ -822,6 +822,7 @@
             // Обновление коллекций
             COLLECTIONS = data.collections.map(colItem => ({
                 ...colItem.collection,
+                id: parseInt(colItem.collection.id),
                 completed: colItem.completed,
                 claimed: colItem.claimed,
                 thumbnail: `${API_URL}${colItem.collection.thumbnail}`,
@@ -830,7 +831,7 @@
                     amount: req.amount
                 }))
             }));
-            
+            console.log(data);
             // Обновление интерфейса
             updateAnimationToggle();
             renderAll();
@@ -839,6 +840,8 @@
             console.error('Ошибка загрузки данных:', error);
         }
     }
+
+    
 
     async function saveGame() {
         if (isSaving) return;
@@ -874,6 +877,8 @@
             }))
 
         };
+
+        console.log(saveData);
         
         try {
             await axios.post(`${API_URL}/api/save/`, saveData, {
@@ -1308,15 +1313,37 @@
     }
 
     async function claimCollectionReward(collectionId) {
-        const collection = COLLECTIONS.find(c => c.id === collectionId);
+        const collection = COLLECTIONS.find(c => c.id == collectionId);
         if (!collection || !collection.completed || collection.claimed) return;
         
-        if (success) {
-            collection.claimed = true;
-            saveGame();
-            renderCollections();
+        // Проверяем, что коллекция завершена
+        let allCompleted = true;
+        collection.slimes.forEach(req => {
+            const slime = SLIMES.find(s => s.name === req.name);
+            if (!slime || slime.amount < req.amount) {
+                allCompleted = false;
+            }
+        });
+        
+        if (!allCompleted) return;
+        
+        // Применяем эффект награды
+        if (collection.reward.includes("Множитель урожая")) {
+            const multiplier = parseInt(collection.reward.match(/x(\d+)/)[1]);
+            gameState.harvestMultiplier = multiplier;
+        } 
+        else if (collection.reward.includes("Бустер редкости")) {
+            const boost = parseInt(collection.reward.match(/\d+/)[0]);
+            gameState.rareChanceBoost = boost / 100;
         }
         
+        // Помечаем награду как полученную
+        collection.claimed = true;
+        
+        // Сохраняем и обновляем интерфейс
+        saveGame();
+        renderCollections();
+        renderActiveEffects();
     }
 
     function renderIndex() {

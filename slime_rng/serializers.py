@@ -61,7 +61,6 @@ class CollectionSerializer(serializers.ModelSerializer):
 
 class PlayerInventorySerializer(serializers.ModelSerializer):
     slime_type = SlimeTypeSerializer()
-    is_completed = serializers.BooleanField()
     
     class Meta:
         model = PlayerInventory
@@ -72,7 +71,8 @@ class PlayerCraftSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = PlayerCraft
-        fields = ['recipe', 'created_at']
+        fields = ['recipe', 'created_at', 'is_completed']
+        read_only_fields = ['created_at']  # Добавлено для безопасности
 
 class PlayerCollectionSerializer(serializers.ModelSerializer):
     collection = CollectionSerializer()

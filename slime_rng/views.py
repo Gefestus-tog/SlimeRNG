@@ -31,8 +31,8 @@ class RegisterView(APIView):
                 PlayerCollection.objects.create(player=user, collection=collection)
             
             # Создание предметов по умолчанию
-            default_crafts = CraftRecipe.objects.all()
-            for craft in default_crafts:
+            all_crafts = CraftRecipe.objects.all()  # Изменено название переменной
+            for craft in all_crafts:
                 PlayerCraft.objects.create(player=user, recipe=craft)
 
             token, created = Token.objects.get_or_create(user=user)
@@ -95,126 +95,7 @@ class PlayerInventoryView(APIView):
         serializer = PlayerInventorySerializer(inventory, many=True)
         return Response(serializer.data)
 
-class CraftItemView(APIView):
-    @transaction.atomic
-    def post(self, request, recipe_id):
-        try:
-            recipe = CraftRecipe.objects.get(id=recipe_id)
-            ingredients = recipe.ingredients.all()
-            
-            # Проверка ингредиентов
-            for ingredient in ingredients:
-                try:
-                    item = PlayerInventory.objects.get(
-                        player=request.user,
-                        slime_type=ingredient.slime_type
-                    )
-                    if item.amount < ingredient.amount:
-                        return Response(
-                            {'error': f'Not enough {ingredient.slime_type.name}'},
-                            status=status.HTTP_400_BAD_REQUEST
-                        )
-                except PlayerInventory.DoesNotExist:
-                    return Response(
-                        {'error': f'Missing {ingredient.slime_type.name}'},
-                        status=status.HTTP_400_BAD_REQUEST
-                    )
-            
-            # Списание ингредиентов
-            for ingredient in ingredients:
-                item = PlayerInventory.objects.get(
-                    player=request.user,
-                    slime_type=ingredient.slime_type
-                )
-                item.amount -= ingredient.amount
-                item.save()
-            
-            # Создание предмета
-            PlayerCraft.objects.create(player=request.user, recipe=recipe)
-            
-            # Применение эффекта
-            if recipe.effect_type and recipe.effect_value:
-                apply_recipe_effect(request.user, recipe)
-            
-            return Response(status=status.HTTP_201_CREATED)
-        
-        except CraftRecipe.DoesNotExist:
-            return Response({'error': 'Recipe not found'}, status=status.HTTP_404_NOT_FOUND)
 
-def apply_recipe_effect(user, recipe):
-    if recipe.effect_type == 'harvestMultiplier':
-        user.harvest_multiplier += recipe.effect_value
-    elif recipe.effect_type == 'spinCooldown':
-        user.spin_cooldown = max(100, user.spin_cooldown * (1 - recipe.effect_value))
-    elif recipe.effect_type == 'rareChanceBoost':
-        user.rare_chance_boost += recipe.effect_value
-    elif recipe.effect_type == 'epicChanceBoost':
-        user.epic_chance_boost += recipe.effect_value
-    elif recipe.effect_type == 'divineChanceMultiplier':
-        user.divine_chance_multiplier *= recipe.effect_value
-    user.save()
-
-class ClaimCollectionView(APIView):
-    @transaction.atomic
-    def post(self, request, collection_id):
-        try:
-            collection = Collection.objects.get(id=collection_id)
-            player_collection, _ = PlayerCollection.objects.get_or_create(
-                player=request.user,
-                collection=collection
-            )
-            
-            if player_collection.claimed:
-                return Response(
-                    {'error': 'Reward already claimed'},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            
-            # Проверка требований
-            requirements = collection.requirements.all()
-            for req in requirements:
-                try:
-                    item = PlayerInventory.objects.get(
-                        player=request.user,
-                        slime_type=req.slime_type
-                    )
-                    if item.amount < req.amount:
-                        return Response(
-                            {'error': f'Not enough {req.slime_type.name}'},
-                            status=status.HTTP_400_BAD_REQUEST
-                        )
-                except PlayerInventory.DoesNotExist:
-                    return Response(
-                        {'error': f'Missing {req.slime_type.name}'},
-                        status=status.HTTP_400_BAD_REQUEST
-                    )
-            
-            # Обновление статуса
-            player_collection.completed = True
-            player_collection.claimed = True
-            player_collection.save()
-            
-            # Применение эффекта
-            if collection.effect_type and collection.effect_value:
-                apply_collection_effect(request.user, collection)
-            
-            return Response(status=status.HTTP_200_OK)
-        
-        except Collection.DoesNotExist:
-            return Response({'error': 'Collection not found'}, status=status.HTTP_404_NOT_FOUND)
-
-def apply_collection_effect(user, collection):
-    if collection.effect_type == 'harvestMultiplier':
-        user.harvest_multiplier += collection.effect_value
-    elif collection.effect_type == 'spinCooldown':
-        user.spin_cooldown = max(100, user.spin_cooldown * (1 - collection.effect_value))
-    elif collection.effect_type == 'rareChanceBoost':
-        user.rare_chance_boost += collection.effect_value
-    elif collection.effect_type == 'epicChanceBoost':
-        user.epic_chance_boost += collection.effect_value
-    elif collection.effect_type == 'divineChanceMultiplier':
-        user.divine_chance_multiplier *= collection.effect_value
-    user.save()
 
 
 
@@ -281,14 +162,16 @@ class SaveGameView(APIView):
         return Response(status=status.HTTP_200_OK)
 
 class LoadGameView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
     def get(self, request):
         with transaction.atomic():
             all_slime_types = SlimeType.objects.all()
             for slime_type in all_slime_types:
                 PlayerInventory.objects.get_or_create(player=request.user, slime_type=slime_type)
             
-            default_crafts = CraftRecipe.objects.filter(created_by_default=True)
-            for craft in default_crafts:
+            all_crafts = CraftRecipe.objects.all()  # Исправлено: убрана фильтрация по пользователю
+            for craft in all_crafts:
                 PlayerCraft.objects.get_or_create(player=request.user, recipe=craft)
 
         inventory_qs = PlayerInventory.objects.filter(player=request.user).order_by('slime_type__id')
