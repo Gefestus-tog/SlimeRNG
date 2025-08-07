@@ -18,9 +18,8 @@ class User(AbstractUser):
     # Бонусы
     harvest_multiplier = models.FloatField(default=1.0)
     spin_cooldown = models.PositiveIntegerField(default=1000)  # в ms
-    rare_chance_boost = models.FloatField(default=0.0)
-    epic_chance_boost = models.FloatField(default=0.0)
-    divine_chance_multiplier = models.FloatField(default=1.0)
+    luck = models.FloatField(default=0.0)
+    
     
     class Meta:
         verbose_name = "Игрок"
@@ -52,19 +51,21 @@ class SlimeType(models.Model):
         ordering = ['chance']
 
 class CraftRecipe(models.Model):
+    HARVESTMULTIPLIER = 'HarvestMultiplier'
+    SPINCOOLDOWN = 'SpinCooldown'
+    LUCKBOOST = 'LuckBoost'
+
     EFFECT_TYPE_CHOICES = [
-        ('harvestMultiplier', 'harvestMultiplier'),
-        ('spinCooldown', 'spinCooldown'),
-        ('rareChanceBoost', 'rareChanceBoost'),
-        ('epicChanceBoost', 'epicChanceBoost'),
-        ('divineChanceMultiplier', 'divineChanceMultiplier')
+        (HARVESTMULTIPLIER, 'HarvestMultiplier'),
+        (SPINCOOLDOWN, 'SpinCooldown'),
+        (LUCKBOOST, 'LuckBoost'),
     ]
 
     name = models.CharField(max_length=100)
     image = models.ImageField(upload_to='craft-items/', null=True, blank=True)
     effect = models.TextField()
     created_by_default = models.BooleanField(default=False)
-    effect_type = models.CharField(max_length=50, choices=EFFECT_TYPE_CHOICES, null=True, blank=True)
+    effect_type = models.CharField(max_length=50, choices=EFFECT_TYPE_CHOICES, default=LUCKBOOST, null=True, blank=True)
     effect_value = models.FloatField(null=True, blank=True)
     
     def __str__(self):
@@ -88,20 +89,21 @@ class CraftIngredient(models.Model):
         verbose_name_plural = "Ингредиенты крафта"
 
 class Collection(models.Model):
+    HARVESTMULTIPLIER = 'HarvestMultiplier'
+    SPINCOOLDOWN = 'SpinCooldown'
+    LUCKBOOST = 'LuckBoost'
+
     EFFECT_TYPE_CHOICES = [
-        ('harvestMultiplier', 'harvestMultiplier'),
-        ('spinCooldown', 'spinCooldown'),
-        ('rareChanceBoost', 'rareChanceBoost'),
-        ('epicChanceBoost', 'epicChanceBoost'),
-        ('mythicChanceBoost', 'mythicChanceBoost'),
-        ('divineChanceMultiplier', 'divineChanceMultiplier')
+        (HARVESTMULTIPLIER, 'HarvestMultiplier'),
+        (SPINCOOLDOWN, 'SpinCooldown'),
+        (LUCKBOOST, 'LuckBoost'),
     ]
 
     name = models.CharField(max_length=100)
     description = models.TextField()
     thumbnail = models.ImageField(upload_to='collections/', null=True, blank=True)
     reward = models.TextField()
-    effect_type = models.CharField(max_length=50, choices=EFFECT_TYPE_CHOICES, null=True, blank=True)
+    effect_type = models.CharField(max_length=50, choices=EFFECT_TYPE_CHOICES, default=LUCKBOOST, null=True, blank=True)
     effect_value = models.FloatField(null=True, blank=True)
     completed = models.BooleanField(default=False)
     claimed = models.BooleanField(default=False)

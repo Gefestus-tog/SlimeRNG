@@ -14,8 +14,7 @@ class UserSerializer(serializers.ModelSerializer):
             'id', 'username', 'password',
             'animation_enabled', 'auto_save_enabled',
             'collections_visible', 'index_visible', 'total_spins', 'rare_slimes_found',
-            'harvest_multiplier', 'spin_cooldown', 'rare_chance_boost',
-            'epic_chance_boost', 'divine_chance_multiplier'
+            'harvest_multiplier', 'spin_cooldown', 'luck'
         ]
         extra_kwargs = {'password': {'write_only': True}}
 

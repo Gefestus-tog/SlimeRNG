@@ -123,26 +123,15 @@ class SaveGameView(APIView):
             try:
                 recipe = CraftRecipe.objects.get(id=craft_data['recipe']['id'])
                 
-                # Обработка поля created
-                created_value = craft_data.get('created')
-                if isinstance(created_value, str):
-                    created = parse_datetime(created_value) or timezone.now()
-                elif created_value:
-                    # Если пришло что-то неожиданное (число или объект)
-                    created = timezone.now()
-                else:
-                    created = timezone.now()
-                
-                crafts_to_create.append(
-                    PlayerCraft(
-                        player=request.user,
-                        recipe=recipe,
-                        created_at=created,
-                        is_completed=True
-                    )
+                # Обновляем или создаем запись PlayerCraft
+                player_craft, created = PlayerCraft.objects.update_or_create(
+                    player=request.user,
+                    recipe=recipe,
+                    defaults={
+                        'is_completed': craft_data.get('is_completed', False)
+                    }
                 )
             except (KeyError, CraftRecipe.DoesNotExist):
-                # Пропускаем невалидные записи
                 continue
         
         PlayerCraft.objects.bulk_create(crafts_to_create)

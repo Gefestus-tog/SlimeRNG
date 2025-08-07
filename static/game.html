@@ -696,9 +696,7 @@
         multiplier: 10000000,
         harvestMultiplier: 1,
         spinCooldown: 1000,
-        rareChanceBoost: 0,
-        epicChanceBoost: 0,
-        divineChanceMultiplier: 1,
+        luck: 1,
         animationEnabled: true,
         autoSaveEnabled: true,
         collectionsVisible: true,
@@ -732,6 +730,10 @@
     
     // Чит-коды
     const cheatCodes = {
+        "LUCK": () => {
+            gameState.luck *= 100;
+            return "Удача +500%!";
+        },
         "ALLSLIMES": () => {
             SLIMES.forEach(slime => {
                 slime.amount += 10;
@@ -796,9 +798,7 @@
                 ...data.user,
                 harvestMultiplier: data.user.harvest_multiplier,
                 spinCooldown: data.user.spin_cooldown,
-                rareChanceBoost: data.user.rare_chance_boost,
-                epicChanceBoost: data.user.epic_chance_boost,
-                divineChanceMultiplier: data.user.divine_chance_multiplier
+                luck: data.user.luck
             };
             
             // Обновление слаймов
@@ -858,9 +858,7 @@
                 rare_slimes_found: gameState.rareSlimesFound,
                 harvest_multiplier: gameState.harvestMultiplier,
                 spin_cooldown: gameState.spinCooldown,
-                rare_chance_boost: gameState.rareChanceBoost,
-                epic_chance_boost: gameState.epicChanceBoost,
-                divine_chance_multiplier: gameState.divineChanceMultiplier
+                luck: gameState.luck
             },
             inventory: SLIMES.map(slime => ({
             slime_type: { id: slime.id },
@@ -1012,25 +1010,37 @@
     async function selectFinalSlime() {
         const maxRange = 10000000000;
         const randomNum = Math.floor(Math.random() * maxRange) + 1;
-        
+
         let selectedSlime = null;
         let candidates = [];
         
         for (const slime of SLIMES) {
-            let chanceValue = parseInt(slime.chance.split('/')[1]);
+            let baseChance = parseInt(slime.chance.split('/')[1]);
+            let chanceValue = baseChance;
             
-            if (slime.rarity === "rare") {
-                chanceValue = Math.max(1, Math.floor(chanceValue * (1 - gameState.rareChanceBoost)));
-            } else if (slime.rarity === "epic") {
-                chanceValue = Math.max(1, Math.floor(chanceValue * (1 - gameState.epicChanceBoost)));
-            } else if (slime.rarity === "divine") {
-                chanceValue = Math.max(1, Math.floor(chanceValue / gameState.divineChanceMultiplier));
+            // Применяем удачу ко всем необычным и выше слаймам
+            if (slime.rarity !== "common") {
+                // Увеличиваем шанс в зависимости от уровня удачи
+                chanceValue = Math.max(1, Math.floor(baseChance / (1 + gameState.luck)));
             }
             
             if (randomNum % chanceValue === 0) {
                 candidates.push(slime);
             }
         }
+        
+        // Если нет кандидатов, выбираем случайного обычного слайма
+        if (candidates.length === 0) {
+            const commonSlimes = SLIMES.filter(s => s.rarity === "common");
+            selectedSlime = commonSlimes.length > 0 
+                ? commonSlimes[Math.floor(Math.random() * commonSlimes.length)]
+                : SLIMES[0];
+        } else {
+            selectedSlime = candidates[Math.floor(Math.random() * candidates.length)];
+        }
+        
+        // ...остальной код без изменений
+    
         
         selectedSlime = candidates.length > 0 ? 
             candidates[Math.floor(Math.random() * candidates.length)] : 
@@ -1208,16 +1218,23 @@
         
         if (canCraft) {
             try {
+                // Убираем ресурсы
+                craft.cost.forEach(item => {
+                    const slime = SLIMES.find(s => s.name === item.name);
+                    if (slime) slime.amount -= item.amount;
+                });
                 
-                    craft.cost.forEach(item => {
-                        const slime = SLIMES.find(s => s.name === item.name);
-                        if (slime) slime.amount -= item.amount;
-                    });
-                    craft.created = true;
-                    saveGame();
-                    renderCrafter();
-                    if (inventoryOpen) renderInventory();
-                    renderActiveEffects();
+                // Помечаем как созданный
+                craft.created = true;
+                
+                // СРАЗУ ПРИМЕНЯЕМ ЭФФЕКТ ПРИ СОЗДАНИИ
+                applyCraftEffect(craft);
+                
+                // Сохраняем и обновляем
+                saveGame();
+                renderCrafter();
+                if (inventoryOpen) renderInventory();
+                renderActiveEffects();
                 
             } catch (e) {
                 console.error("Ошибка при создании предмета:", e);
@@ -1228,6 +1245,24 @@
                 craftButton.classList.add('craft-error');
                 setTimeout(() => craftButton.classList.remove('craft-error'), 500);
             }
+        }
+    }
+
+    function applyCraftEffect(craft) {
+        if (craft.effectType === "HarvestMultiplier") {
+            const newValue = parseFloat((gameState.harvestMultiplier + craft.effectValue).toFixed(2));
+            gameState.harvestMultiplier = newValue;
+            console.log(`Множитель урожая увеличен: x${newValue}`);
+        } 
+        else if (craft.effectType === "LuckBoost") {
+            const newValue = parseFloat((gameState.luck * craft.effectValue).toFixed(2));
+            gameState.luck = newValue;
+            console.log(`Удача увеличена: +${newValue}`);
+        }
+        else if (craft.effectType === "SpinCooldown") {
+            const newValue = Math.max(100, gameState.spinCooldown * craft.effectValue);
+            gameState.spinCooldown = newValue;
+            console.log(`Вращение ускорено: ${newValue}ms`);
         }
     }
 
@@ -1326,15 +1361,19 @@
         });
         
         if (!allCompleted) return;
-        
-        // Применяем эффект награды
-        if (collection.reward.includes("Множитель урожая")) {
-            const multiplier = parseInt(collection.reward.match(/x(\d+)/)[1]);
-            gameState.harvestMultiplier = multiplier;
-        } 
-        else if (collection.reward.includes("Бустер редкости")) {
-            const boost = parseInt(collection.reward.match(/\d+/)[0]);
-            gameState.rareChanceBoost = boost / 100;
+
+    // Применяем эффект награды
+        if (collection.effectType == "HarvestMultiplier") {
+            const newValue = parseFloat((gameState.harvestMultiplier + collection.effectValue).toFixed(2));
+            gameState.harvestMultiplier = newValue;
+        }
+        else if (collection.effectType == "LuckBoost") {
+            const newValue = parseFloat((gameState.luck * collection.effectValue).toFixed(2));
+            gameState.luck = newValue;
+        }
+        else if (collection.effectType == "SpinCooldown") {
+            const newValue = parseFloat((gameState.spinCooldown * collection.effectValue).toFixed(2));
+            gameState.spinCooldown = newValue;
         }
         
         // Помечаем награду как полученную
@@ -1427,20 +1466,20 @@
             });
         }
         
-        if (gameState.rareChanceBoost > 0) {
-            effects.push({
-                name: "Бустер редкости",
-                description: `+${Math.round(gameState.rareChanceBoost * 100)}% к шансу редких`,
-                icon: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCI+PHBhdGggZD0iTTEyIDJMNi4yNCA4Ljg0IDIgOS43NWw1IDQuODctMS41IDYuMTNMMTIgMTcuNzdMOC4yNCAxOS41bC0xLjUtNi4xM0wxMiAxMi42Nmw1LjI2IDUuNzFsLTEuNSA2LjEzTDEyIDE5Ljc3bDUuNzYgMy43M0wxNi4yNiAxNC42bDUtNC44Ny01LjI2LS45MXoiLz48L3N2Zz4="
-            });
-        }
+        if (gameState.luck > 0) {
+        effects.push({
+            name: "Удача",
+            description: `+${Math.round(gameState.luck * 100)}% к шансу редких слаймов`,
+            icon: "data:image/svg+xml;base64,..." // иконка удачи
+        });
+    }
         
         // Рендеринг эффектов
         effects.forEach(effect => {
             const effectElement = document.createElement("div");
             effectElement.className = "active-effect";
             effectElement.innerHTML = `
-                <img src="${effect.icon}" alt="${effect.name}">
+                
                 <div>
                     <strong>${effect.name}</strong>
                     <div>${effect.description}</div>
