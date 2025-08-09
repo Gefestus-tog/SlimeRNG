@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-z-)v_pr&4q7zgg0ror9ai&paka1svmtho7zm2hg%b!08k_a73c
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost', '*']
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost','*']
 
 
 # Application definition
@@ -57,7 +57,10 @@ MIDDLEWARE = [
 ]
 
 CORS_ALLOWED_ORIGINS = [
-    '*',
+    'http://localhost:8000',
+    'http://127.0.0.1:8000',
+    'https://slimerng.onrender.com',
+    'https://www.slimerng.onrender.com',
 ]
 
 ROOT_URLCONF = 'core.urls'
