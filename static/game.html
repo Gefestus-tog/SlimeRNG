@@ -816,8 +816,11 @@
                 cost: craftItem.recipe.ingredients.map(ing => ({
                     name: ing.slime_type.name,
                     amount: ing.amount
-                }))
+                })),
+                effectType: craftItem.recipe.effect_type,     // <── теперь camelCase
+                effectValue: craftItem.recipe.effect_value
             }));
+
             
             // Обновление коллекций
             COLLECTIONS = data.collections.map(colItem => ({
@@ -829,7 +832,9 @@
                 slimes: colItem.collection.requirements.map(req => ({
                     name: req.slime_type.name,
                     amount: req.amount
-                }))
+                })),
+                effectType: colItem.collection.effect_type,  // <── добавить
+                effectValue: colItem.collection.effect_value // <── добавить
             }));
             console.log(data);
             // Обновление интерфейса
@@ -948,15 +953,75 @@
     }
 
     async function resetProgress() {
-        if (confirm("Вы уверены, что хотите сбросить весь прогресс? Все ваши данные будут удалены.")) {
-            try {
-                await resetOnServer();
-                await fetchGameData();
-                console.log("Прогресс сброшен!");
-            } catch (error) {
-                console.error('Ошибка сброса прогресса:', error);
-            }
+        if (!confirm("Вы уверены, что хотите сбросить весь прогресс? Все ваши данные будут удалены.")) {
+            return;
         }
+
+        const originalText = resetButton.textContent;
+        resetButton.textContent = "Сбрасываем...";
+        resetButton.disabled = true;
+
+        try {
+            // Локальный сброс состояния
+            gameState = {
+                multiplier: 10000000,
+                harvestMultiplier: 1,
+                spinCooldown: 1000,
+                luck: 1,
+                animationEnabled: true,
+                autoSaveEnabled: true,
+                collectionsVisible: true,
+                indexVisible: true,
+                totalSpins: 0,
+                rareSlimesFound: 0
+            };
+
+            // Сброс слаймов
+            SLIMES.forEach(slime => {
+                slime.amount = 0;
+            });
+
+            // Сброс крафтов
+            CRAFTS.forEach(craft => {
+                craft.created = false;
+            });
+
+            // Сброс коллекций
+            COLLECTIONS.forEach(collection => {
+                collection.completed = false;
+                collection.claimed = false;
+            });
+
+            // Обновление интерфейса
+            updateSlimeDisplay(SLIMES[0]);
+            renderAll();
+            
+            // Сохранение сброшенного состояния
+            await saveGame();
+            
+            showNotification("Прогресс успешно сброшен!", "success");
+        } catch (error) {
+            console.error('Ошибка сброса прогресса:', error);
+            showNotification("Ошибка при сбросе прогресса", "error");
+        } finally {
+            resetButton.textContent = originalText;
+            resetButton.disabled = false;
+        }
+    }
+
+    function showNotification(message, type = "info") {
+        const notification = document.createElement("div");
+        notification.className = `notification ${type}`;
+        notification.textContent = message;
+        
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+            notification.style.opacity = "0";
+            setTimeout(() => {
+                document.body.removeChild(notification);
+            }, 300);
+        }, 3000);
     }
 
     async function spin() {
@@ -1249,20 +1314,24 @@
     }
 
     function applyCraftEffect(craft) {
-        if (craft.effectType === "HarvestMultiplier") {
+        console.log(craft.effectType)
+        if (craft.effectType == "HarvestMultiplier") {
             const newValue = parseFloat((gameState.harvestMultiplier + craft.effectValue).toFixed(2));
             gameState.harvestMultiplier = newValue;
-            console.log(`Множитель урожая увеличен: x${newValue}`);
+            console.log(`Множитель урожая увеличен на: ${newValue}`);
         } 
-        else if (craft.effectType === "LuckBoost") {
-            const newValue = parseFloat((gameState.luck * craft.effectValue).toFixed(2));
+        else if (craft.effectType == "LuckBoost") {
+            const newValue = parseFloat((gameState.luck * craft.effectValue).toFixed(1));
             gameState.luck = newValue;
             console.log(`Удача увеличена: +${newValue}`);
         }
-        else if (craft.effectType === "SpinCooldown") {
-            const newValue = Math.max(100, gameState.spinCooldown * craft.effectValue);
+        else if (craft.effectType == "SpinCooldown") {
+            const newValue = Math.floor(gameState.spinCooldown * craft.effectValue);
             gameState.spinCooldown = newValue;
             console.log(`Вращение ускорено: ${newValue}ms`);
+        }
+        else {
+            console.log('dont understand')
         }
     }
 
@@ -1351,6 +1420,8 @@
         const collection = COLLECTIONS.find(c => c.id == collectionId);
         if (!collection || !collection.completed || collection.claimed) return;
         
+        console.log("claimCollectionReward data:", collection);
+
         // Проверяем, что коллекция завершена
         let allCompleted = true;
         collection.slimes.forEach(req => {
@@ -1436,50 +1507,33 @@
 
     function renderActiveEffects() {
         effectsList.innerHTML = "";
-        
+
         const effects = [];
         
-        // Эффекты от амулетов
-        CRAFTS.filter(craft => craft.created).forEach(craft => {
-            effects.push({
-                name: craft.name,
-                description: craft.effect,
-                icon: craft.image
-            });
+      
+        effects.push({
+            name: "Множитель урожая",
+            description: `x${gameState.harvestMultiplier} слаймов за спин`,
         });
         
-        // Эффекты от коллекций
-        COLLECTIONS.filter(c => c.claimed).forEach(collection => {
-            effects.push({
-                name: collection.name,
-                description: `Коллекция: ${collection.reward}`,
-                icon: collection.thumbnail
-            });
-        });
         
-        // Системные эффекты
-        if (gameState.harvestMultiplier > 1) {
-            effects.push({
-                name: "Множитель урожая",
-                description: `x${gameState.harvestMultiplier} слаймов за спин`,
-                icon: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCI+PHBhdGggZD0iTTE5IDE5SDVINmMxLjEgMCAyLS45IDItMnYtN2gtMnY3em0xNC0xNEg1djJoMTZ2MTJoMnYtMTJjMC0xLjEtLjktMi0yLTJ6bS0yIDBIN1Y1aDEwdjB6Ii8+PC9zdmc+"
-            });
-        }
-        
-        if (gameState.luck > 0) {
         effects.push({
             name: "Удача",
-            description: `+${Math.round(gameState.luck * 100)}% к шансу редких слаймов`,
-            icon: "data:image/svg+xml;base64,..." // иконка удачи
+            description: `x${gameState.luck} к шансу редких слаймов`,
         });
-    }
         
-        // Рендеринг эффектов
+        
+        effects.push({
+            name: "Скорость вращения",
+            description: `${gameState.spinCooldown} мс задержки`,
+        });
+        
+
+        // Рендерим только нужные эффекты
         effects.forEach(effect => {
             const effectElement = document.createElement("div");
             effectElement.className = "active-effect";
             effectElement.innerHTML = `
-                
                 <div>
                     <strong>${effect.name}</strong>
                     <div>${effect.description}</div>
@@ -1487,7 +1541,7 @@
             `;
             effectsList.appendChild(effectElement);
         });
-        
+
         if (effects.length === 0) {
             effectsList.innerHTML = "<p>Нет активных эффектов</p>";
         }

@@ -18,7 +18,7 @@ class User(AbstractUser):
     # Бонусы
     harvest_multiplier = models.FloatField(default=1.0)
     spin_cooldown = models.PositiveIntegerField(default=1000)  # в ms
-    luck = models.FloatField(default=0.0)
+    luck = models.FloatField(default=1.0)
     
     
     class Meta:
