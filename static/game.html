@@ -898,18 +898,6 @@
         }
     }
 
-    async function resetOnServer() {
-        try {
-            await axios.post(`${API_URL}/api/reset/`, {}, {
-                headers: { 'Authorization': `Token ${authToken}` }
-            });
-            return true;
-        } catch (error) {
-            console.error('Ошибка сброса прогресса:', error);
-            return false;
-        }
-    }
-
     // Инициализация игры
     async function initGame() {
         await fetchGameData();
