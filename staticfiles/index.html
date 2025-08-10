@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Slime Collector - Авторизация</title>
+    <!-- Подключаем Axios -->
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Rubik', sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #C8E6C9, #E8F5E9);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .auth-container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 450px;
+            padding: 40px 30px;
+            text-align: center;
+        }
+        
+        .logo {
+            margin-bottom: 30px;
+        }
+        
+        .logo h1 {
+            color: #2E7D32;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        
+        .logo p {
+            color: #666;
+            font-size: 1.1rem;
+        }
+        
+        .tabs {
+            display: flex;
+            margin-bottom: 25px;
+            border-bottom: 2px solid #eee;
+        }
+        
+        .tab {
+            flex: 1;
+            padding: 15px;
+            cursor: pointer;
+            font-weight: bold;
+            color: #888;
+            transition: all 0.3s;
+        }
+        
+        .tab.active {
+            color: #2E7D32;
+            border-bottom: 3px solid #4CAF50;
+            margin-bottom: -2px;
+        }
+        
+        .form-container {
+            margin-bottom: 25px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 500;
+        }
+        
+        input {
+            width: 100%;
+            padding: 14px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border 0.3s;
+        }
+        
+        input:focus {
+            border-color: #4CAF50;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.2);
+        }
+        
+        button {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(to right, #4CAF50, #2E7D32);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 10px;
+        }
+        
+        button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(76, 175, 80, 0.4);
+        }
+        
+        button:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .error-message {
+            color: #f44336;
+            background: #ffebee;
+            padding: 12px;
+            border-radius: 8px;
+            margin: 15px 0;
+            display: none;
+        }
+        
+        .success-message {
+            color: #2E7D32;
+            background: #e8f5e9;
+            padding: 12px;
+            border-radius: 8px;
+            margin: 15px 0;
+            display: none;
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 10px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .footer-links {
+            margin-top: 25px;
+            color: #666;
+        }
+        
+        .footer-links a {
+            color: #4CAF50;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        
+        .footer-links a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="auth-container">
+        <div class="logo">
+            <h1>Slime Collector</h1>
+            <p>Собирай редких слаймов и создавай уникальные предметы!</p>
+        </div>
+        
+        <div class="tabs">
+            <div class="tab active" id="login-tab">Вход</div>
+            <div class="tab" id="register-tab">Регистрация</div>
+        </div>
+        
+        <div class="error-message" id="error-message"></div>
+        <div class="success-message" id="success-message"></div>
+        
+        <div class="form-container">
+            <!-- Форма входа -->
+            <form id="login-form" style="display: block;">
+                <div class="form-group">
+                    <label for="login-username">Имя пользователя</label>
+                    <input type="text" id="login-username" placeholder="Введите имя пользователя" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="login-password">Пароль</label>
+                    <input type="password" id="login-password" placeholder="Введите пароль" required>
+                </div>
+                
+                <button type="submit" id="login-button"><span class="button-text">Войти</span></button>
+            </form>
+            
+            <!-- Форма регистрации -->
+            <form id="register-form" style="display: none;">
+                <div class="form-group">
+                    <label for="register-username">Имя пользователя</label>
+                    <input type="text" id="register-username" placeholder="Введите имя пользователя" required>
+                </div>
+                <div class="form-group">
+                    <label for="register-password">Пароль</label>
+                    <input type="password" id="register-password" placeholder="Введите пароль" required>
+                </div>
+                <div class="form-group">
+                    <label for="register-confirm-password">Повторите пароль</label>
+                    <input type="password" id="register-confirm-password" placeholder="Повторите пароль" required>
+                </div>
+                <button type="submit" id="register-btn"><span class="button-text">Зарегистрироваться</span></button>
+            </form>
+        </div>
+        
+        <div class="footer-links">
+            <p>Играя, вы соглашаетесь с нашими <a href="#">Условиями использования</a></p>
+        </div>
+    </div>
+
+    <script>
+        // Элементы DOM
+        const loginTab = document.getElementById('login-tab');
+        const registerTab = document.getElementById('register-tab');
+        const loginForm = document.getElementById('login-form');
+        const registerForm = document.getElementById('register-form');
+        const errorMessage = document.getElementById('error-message');
+        const successMessage = document.getElementById('success-message');
+        const loginButton = document.getElementById('login-button');
+        const registerButton = document.getElementById('register-btn');
+        
+        // Переключение между вкладками
+        loginTab.addEventListener('click', () => {
+            loginTab.classList.add('active');
+            registerTab.classList.remove('active');
+            loginForm.style.display = 'block';
+            registerForm.style.display = 'none';
+            clearMessages();
+        });
+        
+        registerTab.addEventListener('click', () => {
+            registerTab.classList.add('active');
+            loginTab.classList.remove('active');
+            registerForm.style.display = 'block';
+            loginForm.style.display = 'none';
+            clearMessages();
+        });
+        
+        // Обработка формы входа с использованием Axios
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const username = document.getElementById('login-username').value;
+            const password = document.getElementById('login-password').value;
+            
+            if (!username || !password) {
+                showError('Пожалуйста, заполните все поля');
+                return;
+            }
+            
+            // Показываем индикатор загрузки
+            setButtonLoading(loginButton, true);
+            
+            try {
+                // Используем Axios вместо Fetch
+                const response = await axios.post('/api/login/', {
+                    username,
+                    password
+                });
+                
+                // Обработка успешного ответа
+                const data = response.data;
+                
+                // Сохраняем токен и ID пользователя
+                localStorage.setItem('auth_token', data.token);
+                localStorage.setItem('user_id', data.user_id);
+                
+                showSuccess('Вход выполнен успешно! Перенаправляем в игру...');
+                
+                // Перенаправление на страницу игры
+                setTimeout(() => {
+                    window.location.href = 'game.html';
+                }, 1500);
+            } catch (error) {
+                // Обработка ошибок с помощью Axios
+                let errorMsg = 'Ошибка сети. Пожалуйста, попробуйте позже';
+                
+                if (error.response) {
+                    // Сервер ответил с ошибкой (4xx, 5xx)
+                    if (error.response.data && error.response.data.message) {
+                        errorMsg = error.response.data.message;
+                    } else if (error.response.status === 401) {
+                        errorMsg = 'Неверное имя пользователя или пароль';
+                    } else if (error.response.status === 400) {
+                        errorMsg = 'Некорректные данные запроса';
+                    }
+                } else if (error.request) {
+                    // Запрос был сделан, но ответ не получен
+                    errorMsg = 'Сервер не отвечает. Пожалуйста, попробуйте позже';
+                }
+                
+                showError(errorMsg);
+            } finally {
+                setButtonLoading(loginButton, false);
+            }
+        });
+        
+        // Обработка формы регистрации с использованием Axios
+        document.getElementById('register-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const username = document.getElementById('register-username').value;
+            const password = document.getElementById('register-password').value;
+            const confirmPassword = document.getElementById('register-confirm-password').value;
+            
+            if (!username || !password || !confirmPassword) {
+                showError('Пожалуйста, заполните все поля');
+                return;
+            }
+            
+            if (password !== confirmPassword) {
+                showError('Пароли не совпадают');
+                return;
+            }
+            
+            if (password.length < 6) {
+                showError('Пароль должен содержать не менее 6 символов');
+                return;
+            }
+            
+            // Показываем индикатор загрузки
+            setButtonLoading(registerButton, true);
+            
+            try {
+                // Используем Axios вместо Fetch
+                const requestData = {
+                    "username": username,
+                    "password": password
+                };
+                console.log(requestData);
+
+                const response = await axios.post('/api/register/', requestData);
+                
+                // Обработка успешного ответа
+                const data = response.data;
+                
+                // Автоматически входим после регистрации
+                localStorage.setItem('auth_token', data.token);
+                localStorage.setItem('user_id', data.user_id);
+                
+                showSuccess('Регистрация прошла успешно! Перенаправляем в игру...');
+                
+                // Перенаправление на страницу игры
+                setTimeout(() => {
+                    window.location.href = 'game.html';
+                }, 1500);
+            } catch (error) {
+                // Обработка ошибок с помощью Axios
+                let errorMsg = 'Ошибка сети. Пожалуйста, попробуйте позже';
+                
+                if (error.response) {
+                    // Сервер ответил с ошибкой
+                    if (error.response.data && error.response.data.message) {
+                        errorMsg = error.response.data.message;
+                    } else if (error.response.status === 409) {
+                        errorMsg = 'Пользователь с таким именем уже существует';
+                    } else if (error.response.status === 400) {
+                        errorMsg = 'Некорректные данные запроса';
+                    }
+                } else if (error.request) {
+                    // Запрос был сделан, но ответ не получен
+                    errorMsg = 'Сервер не отвечает. Пожалуйста, попробуйте позже';
+                }
+                
+                showError(errorMsg);
+            } finally {
+                setButtonLoading(registerButton, false);
+            }
+        });
+        
+        // Вспомогательные функции
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.style.display = 'block';
+            successMessage.style.display = 'none';
+        }
+        
+        function showSuccess(message) {
+            successMessage.textContent = message;
+            successMessage.style.display = 'block';
+            errorMessage.style.display = 'none';
+        }
+        
+        function clearMessages() {
+            errorMessage.style.display = 'none';
+            successMessage.style.display = 'none';
+        }
+        
+        function setButtonLoading(button, isLoading) {
+            let buttonText = button.querySelector('.button-text');
+            if (!buttonText) buttonText = button; // fallback
+
+            if (isLoading) {
+                button.disabled = true;
+                buttonText.innerHTML = '<div class="loading"></div> Обработка...';
+            } else {
+                button.disabled = false;
+                buttonText.textContent = button === loginButton ? 'Войти' : 'Зарегистрироваться';
+            }
+        }
+        
+        // Проверка авторизации при загрузке
+        window.addEventListener('DOMContentLoaded', () => {
+            const token = localStorage.getItem('auth_token');
+            
+            // Если пользователь уже авторизован, перенаправляем сразу в игру
+            if (token) {
+                window.location.href = 'game.html';
+            }
+        });
+    </script>
+</body>
+</html>

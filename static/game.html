@@ -679,6 +679,7 @@
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script>
     const API_URL = 'https://slimerng.onrender.com';
+    // const API_URL = 'http://127.0.0.1:8000'
     const UNKNOWN_SLIME_IMAGE = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNTAiIGhlaWdodD0iMjUwIiB2aWV3Qm94PSIwIDAgMjAwIDIwMCI+PGNpcmNsZSBjeD0iMTAwIiBjeT0iMTAwIiByPSI4MCIgZmlsbD0iI2QwZDBkMCIvPjx0ZXh0IHg9IjEwMCIgeT0iMTEwIiBmb250LXNpemU9IjcwIiBmb250LWZhbWlseT0iQXJpYWwiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGRvbWluYW50LWJhc2VsaW5lPSJtaWRkbGUiIGZpbGw9IiM2NjYiIGZvbnQtd2VpZ2h0PSJib2xkIj4/PC90ZXh0Pjwvc3ZnPg==";
 
     // Проверка авторизации
@@ -836,7 +837,9 @@
                 effectType: colItem.collection.effect_type,  // <── добавить
                 effectValue: colItem.collection.effect_value // <── добавить
             }));
-            console.log(data);
+            console.log(SLIMES);
+            console.log(CRAFTS);
+            console.log(COLLECTIONS);
             // Обновление интерфейса
             updateAnimationToggle();
             renderAll();
@@ -1035,28 +1038,29 @@
                 const isKnown = randomSlime.amount > 0;
                 
                 slimeImage.src = isKnown ? randomSlime.image : UNKNOWN_SLIME_IMAGE;
-                nameSpan.textContent = isKnown ? randomSlime.name : "???";
+                nameSpan.textContent =  "???";
                 
-                if (isKnown) {
-                    rarityBadge.textContent = getRarityName(randomSlime.rarity);
-                    rarityBadge.className = `rarity-badge ${randomSlime.rarity}`;
-                } else {
-                    rarityBadge.textContent = "???";
-                    rarityBadge.className = "rarity-badge unknown";
-                }
                 
-                chanceSpan.textContent = isKnown ? randomSlime.chance : "???";
+                rarityBadge.textContent = "???";
+                rarityBadge.className = "rarity-badge unknown";
+                
+                
+                chanceSpan.textContent =  "???";
                 
                 spinCount++;
                 if (spinCount > 10) {
                     clearInterval(spinInterval);
-                    selectFinalSlime();
+                    // Добавляем задержку перед показом результата
+                    setTimeout(() => {
+                        selectFinalSlime();
+                    }, gameState.spinCooldown);
                 }
             }, 150);
         } else {
+            // Используем spinCooldown вместо фиксированной задержки
             setTimeout(() => {
                 selectFinalSlime();
-            }, 50);
+            }, gameState.spinCooldown);
         }
     }
 
