@@ -26,9 +26,7 @@ RUN chmod +x entrypoint.sh
 # Collect static at build time (optional for prod)
 RUN python manage.py collectstatic --noinput
 
-# Create non-root user
-RUN useradd -m appuser
-USER appuser
+# Keep root to ensure write perms on bind mounts like /app/db
 
 EXPOSE 8000
 
