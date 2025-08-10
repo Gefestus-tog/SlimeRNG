@@ -64,6 +64,25 @@ CORS_ALLOWED_ORIGINS = [
     'https://www.slimerng.onrender.com',
 ]
 
+CSRF_TRUSTED_ORIGINS = [
+    'http://localhost:8000',
+    'http://127.0.0.1:8000',
+    'https://slimerng.onrender.com',
+    'https://www.slimerng.onrender.com',
+    'https://*.onrender.com',
+    'https://*.render.com',
+]
+
+# Ensure correct scheme and host when behind a proxy/load balancer
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+USE_X_FORWARDED_HOST = True
+
+# Production-only security settings
+if not DEBUG:
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+
 ROOT_URLCONF = 'core.urls'
 
 TEMPLATES = [
