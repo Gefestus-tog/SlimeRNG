@@ -11,6 +11,7 @@ from .serializers import *
 from django.utils.dateparse import parse_datetime
 from django.utils import timezone
 
+@method_decorator(csrf_exempt, name='dispatch')
 class RegisterView(APIView):
     permission_classes = [permissions.AllowAny]
     
@@ -43,6 +44,7 @@ class RegisterView(APIView):
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+@method_decorator(csrf_exempt, name='dispatch')
 class LoginView(APIView):
     permission_classes = [permissions.AllowAny]
     def post(self, request):
@@ -62,6 +64,7 @@ class LoginView(APIView):
             return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+@method_decorator(csrf_exempt, name='dispatch')
 class LogoutView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
@@ -99,7 +102,9 @@ class PlayerInventoryView(APIView):
 
 
 
+@method_decorator(csrf_exempt, name='dispatch')
 class SaveGameView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
     @transaction.atomic
     def post(self, request):
         # Сохранение состояния пользователя

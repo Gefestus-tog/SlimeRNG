@@ -162,7 +162,10 @@ REST_FRAMEWORK = {
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'slime_rng.permissions.IsAuthenticatedOrReadOnlyForNonSafeMethods',
-    ]
+    ],
+    'DEFAULT_RENDERER_CLASSES': (
+        'rest_framework.renderers.JSONRenderer',
+    ),
 }
 
 # Default primary key field type
