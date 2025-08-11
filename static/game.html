@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Slime Collector</title>
+    <title>Slime RNG</title>
     <style>
         :root {
             --primary: #4CAF50;
@@ -587,12 +587,69 @@
         .active-effect div {
             flex: 1;
         }
+        
+        .footer {
+            background-color: var(--primary);
+            color: white;
+            text-align: center;
+            padding: 20px;
+            margin-top: 30px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        
+        .footer h3 {
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+        
+        .social-links {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .social-link {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background-color: var(--secondary);
+            color: white;
+            text-decoration: none;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        .social-link:hover {
+            background-color: var(--dark);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        
+        .social-icon {
+            font-size: 20px;
+        }
+        
+        @media (max-width: 768px) {
+            .social-links {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .social-link {
+                width: 200px;
+                justify-content: center;
+            }
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>Slime Collector</h1>
+            <h1>Slime RNG</h1>
             <p>Собирай редких слаймов и создавай уникальные предметы!</p>
         </header>
         
@@ -674,6 +731,20 @@
                 <!-- Индекс будет заполняться динамически -->
             </div>
         </div>
+        
+        <footer class="footer">
+            <h3>Следите за нами в социальных сетях!</h3>
+            <div class="social-links">
+                <a href="https://t.me/slimerng" target="_blank" class="social-link">
+                    <span class="social-icon">📱</span>
+                    <span>Telegram: @slimerng</span>
+                </a>
+                <a href="https://www.tiktok.com/@slime.rngt" target="_blank" class="social-link">
+                    <span class="social-icon">🎵</span>
+                    <span>TikTok: @slime.rng</span>
+                </a>
+            </div>
+        </footer>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
