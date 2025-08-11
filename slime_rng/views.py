@@ -6,6 +6,7 @@ from django.contrib.auth import authenticate, login, logout
 from django.db import transaction
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
+from django.db.models import Sum, Count
 from .models import *
 from .serializers import *
 from django.utils.dateparse import parse_datetime
@@ -183,3 +184,77 @@ class LoadGameView(APIView):
             ).data,
         }
         return Response(data)
+
+class LeaderboardView(APIView):
+    permission_classes = [permissions.AllowAny]
+    
+    def get(self, request):
+        leaderboard_type = request.GET.get('type', 'total_spins')
+        
+        if leaderboard_type == 'total_spins':
+            # Leaderboard by total spins
+            users = User.objects.filter(total_spins__gt=0).order_by('-total_spins')[:10]
+            data = [{
+                'username': user.username,
+                'value': user.total_spins,
+                'rank': i + 1
+            } for i, user in enumerate(users)]
+            
+        elif leaderboard_type == 'rare_slimes':
+            # Leaderboard by rare slimes found
+            users = User.objects.filter(rare_slimes_found__gt=0).order_by('-rare_slimes_found')[:10]
+            data = [{
+                'username': user.username,
+                'value': user.rare_slimes_found,
+                'rank': i + 1
+            } for i, user in enumerate(users)]
+            
+        elif leaderboard_type == 'total_slimes':
+            # Leaderboard by total slimes collected
+            users_with_total = []
+            for user in User.objects.all():
+                total_slimes = PlayerInventory.objects.filter(player=user).aggregate(
+                    total=Sum('amount')
+                )['total'] or 0
+                if total_slimes > 0:
+                    users_with_total.append({
+                        'username': user.username,
+                        'value': total_slimes
+                    })
+            
+            # Sort by total slimes and take top 10
+            users_with_total.sort(key=lambda x: x['value'], reverse=True)
+            data = [{
+                'username': user['username'],
+                'value': user['value'],
+                'rank': i + 1
+            } for i, user in enumerate(users_with_total[:10])]
+            
+        elif leaderboard_type == 'collections_completed':
+            # Leaderboard by completed collections
+            users_with_collections = []
+            for user in User.objects.all():
+                completed_collections = PlayerCollection.objects.filter(
+                    player=user, completed=True
+                ).count()
+                if completed_collections > 0:
+                    users_with_collections.append({
+                        'username': user.username,
+                        'value': completed_collections
+                    })
+            
+            # Sort by completed collections and take top 10
+            users_with_collections.sort(key=lambda x: x['value'], reverse=True)
+            data = [{
+                'username': user['username'],
+                'value': user['value'],
+                'rank': i + 1
+            } for i, user in enumerate(users_with_collections[:10])]
+            
+        else:
+            return Response({'error': 'Invalid leaderboard type'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        return Response({
+            'type': leaderboard_type,
+            'leaderboard': data
+        })

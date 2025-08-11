@@ -41,6 +41,26 @@
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
         
+        .header-buttons {
+            margin-top: 15px;
+        }
+        
+        .header-btn {
+            background-color: var(--secondary);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+        
+        .header-btn:hover {
+            background-color: var(--dark);
+            transform: translateY(-2px);
+        }
+        
         .game-area {
             display: flex;
             flex-wrap: wrap;
@@ -594,6 +614,9 @@
         <header>
             <h1>Slime Collector</h1>
             <p>Собирай редких слаймов и создавай уникальные предметы!</p>
+            <div class="header-buttons">
+                <button id="leaderboard-button" class="header-btn">🏆 Таблица лидеров</button>
+            </div>
         </header>
         
         <div class="game-area">
@@ -808,13 +831,17 @@
             const data = response.data;
 
             // Обновление состояния игры
+            console.log('Loading user data:', data.user);
             gameState = {
                 ...gameState,
                 ...data.user,
+                totalSpins: data.user.total_spins,
+                rareSlimesFound: data.user.rare_slimes_found,
                 harvestMultiplier: data.user.harvest_multiplier,
                 spinCooldown: data.user.spin_cooldown,
                 luck: data.user.luck
             };
+            console.log('Updated gameState:', gameState);
             
             // Обновление слаймов
             SLIMES = data.inventory.map(item => ({
@@ -898,7 +925,8 @@
 
         };
 
-        console.log(saveData);
+        console.log('Saving game data:', saveData);
+        console.log('Current gameState:', gameState);
         
         try {
             await axios.post(`${API_URL}/api/save/`, saveData, {
@@ -924,6 +952,7 @@
         saveButton.addEventListener("click", saveGame);
         loadButton.addEventListener("click", fetchGameData);
         resetButton.addEventListener("click", resetProgress);
+        document.getElementById("leaderboard-button").addEventListener("click", openLeaderboard);
         
         document.getElementById('animation-toggle').addEventListener('change', function(e) {
             gameState.animationEnabled = e.target.checked;
@@ -1038,6 +1067,7 @@
         isSpinning = true;
         spinButton.disabled = true;
         gameState.totalSpins++;
+        console.log('Spin completed. Total spins:', gameState.totalSpins);
         
         if (gameState.animationEnabled) {
             spinningEffect.style.display = "block";
@@ -1119,6 +1149,11 @@
         
         const count = gameState.harvestMultiplier;
         selectedSlime.amount += count;
+        
+        // Track rare slimes for leaderboard
+        if (selectedSlime.rarity !== 'common' && selectedSlime.rarity !== 'uncommon') {
+            gameState.rareSlimesFound += count;
+        }
         
         if (gameState.animationEnabled) {
             setTimeout(() => {
@@ -1343,6 +1378,12 @@
 
     function checkCollections() {
         COLLECTIONS.forEach(collection => {
+            // If collection is already claimed, it should remain completed
+            if (collection.claimed) {
+                collection.completed = true;
+                return;
+            }
+            
             let allCompleted = true;
             
             collection.slimes.forEach(req => {
@@ -1453,8 +1494,9 @@
             gameState.spinCooldown = newValue;
         }
         
-        // Помечаем награду как полученную
+        // Помечаем награду как полученную и гарантируем, что коллекция остается завершенной
         collection.claimed = true;
+        collection.completed = true;
         
         // Сохраняем и обновляем интерфейс
         saveGame();
@@ -1576,6 +1618,10 @@
             saveGame();
             console.log("Автосохранение...");
         }, 30000);
+    }
+    
+    function openLeaderboard() {
+        window.open('leaderboard.html', '_blank');
     }
 
     function handleCheatCode(e) {

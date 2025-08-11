@@ -11,5 +11,6 @@ urlpatterns = [
     
     path('save/', views.SaveGameView.as_view(), name='save-game'),
     path('load/', views.LoadGameView.as_view(), name='load-game'),
+    path('leaderboard/', views.LeaderboardView.as_view(), name='leaderboard'),
     
 ]

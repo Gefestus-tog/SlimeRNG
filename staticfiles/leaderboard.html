@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Slime Collector - Таблица лидеров</title>
+    <style>
+        :root {
+            --primary: #4CAF50;
+            --secondary: #8BC34A;
+            --dark: #2E7D32;
+            --light: #C8E6C9;
+            --gold: #FFD700;
+            --silver: #C0C0C0;
+            --bronze: #CD7F32;
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Rubik', sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, var(--light), #E8F5E9);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background-color: var(--primary);
+            color: white;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        
+        .header-buttons {
+            margin-top: 15px;
+        }
+        
+        .btn {
+            background-color: var(--secondary);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 0 10px;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .btn:hover {
+            background-color: var(--dark);
+            transform: translateY(-2px);
+        }
+        
+        .leaderboard-controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+        
+        .leaderboard-tab {
+            background-color: white;
+            border: 2px solid var(--light);
+            color: var(--dark);
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        .leaderboard-tab.active {
+            background-color: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+        
+        .leaderboard-tab:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
+        .leaderboard-container {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+        
+        .leaderboard-header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid var(--light);
+        }
+        
+        .leaderboard-title {
+            font-size: 28px;
+            color: var(--dark);
+            margin-bottom: 10px;
+        }
+        
+        .leaderboard-description {
+            color: #666;
+            font-size: 16px;
+        }
+        
+        .leaderboard-list {
+            list-style: none;
+        }
+        
+        .leaderboard-item {
+            display: flex;
+            align-items: center;
+            padding: 20px;
+            margin-bottom: 15px;
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            border-left: 5px solid var(--light);
+        }
+        
+        .leaderboard-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .leaderboard-item.rank-1 {
+            background: linear-gradient(135deg, #fff8e1, #ffecb3);
+            border-left-color: var(--gold);
+        }
+        
+        .leaderboard-item.rank-2 {
+            background: linear-gradient(135deg, #f5f5f5, #e0e0e0);
+            border-left-color: var(--silver);
+        }
+        
+        .leaderboard-item.rank-3 {
+            background: linear-gradient(135deg, #fff3e0, #ffe0b2);
+            border-left-color: var(--bronze);
+        }
+        
+        .rank-number {
+            font-size: 24px;
+            font-weight: bold;
+            width: 60px;
+            text-align: center;
+            margin-right: 20px;
+        }
+        
+        .rank-1 .rank-number {
+            color: var(--gold);
+        }
+        
+        .rank-2 .rank-number {
+            color: var(--silver);
+        }
+        
+        .rank-3 .rank-number {
+            color: var(--bronze);
+        }
+        
+        .player-info {
+            flex: 1;
+        }
+        
+        .player-name {
+            font-size: 20px;
+            font-weight: bold;
+            color: var(--dark);
+            margin-bottom: 5px;
+        }
+        
+        .player-value {
+            font-size: 18px;
+            color: var(--primary);
+            font-weight: 500;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        
+        .loading::after {
+            content: '';
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .error {
+            text-align: center;
+            padding: 40px;
+            color: #d32f2f;
+            background: #ffebee;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        
+        .empty-state h3 {
+            margin-bottom: 10px;
+            color: var(--dark);
+        }
+        
+        @media (max-width: 768px) {
+            .leaderboard-controls {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .leaderboard-tab {
+                width: 100%;
+                max-width: 300px;
+                text-align: center;
+            }
+            
+            .leaderboard-item {
+                flex-direction: column;
+                text-align: center;
+                gap: 10px;
+            }
+            
+            .rank-number {
+                margin-right: 0;
+                margin-bottom: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🏆 Таблица лидеров</h1>
+            <p>Соревнуйтесь с другими игроками в Slime Collector!</p>
+            <div class="header-buttons">
+                <a href="game.html" class="btn">Вернуться к игре</a>
+                <a href="index.html" class="btn">Выйти</a>
+            </div>
+        </header>
+        
+        <div class="leaderboard-controls">
+            <button class="leaderboard-tab active" data-type="total_spins">
+                🎯 Всего вращений
+            </button>
+            <button class="leaderboard-tab" data-type="rare_slimes">
+                ⭐ Редкие слаймы
+            </button>
+            <button class="leaderboard-tab" data-type="total_slimes">
+                📦 Всего слаймов
+            </button>
+            <button class="leaderboard-tab" data-type="collections_completed">
+                🏅 Завершенные коллекции
+            </button>
+        </div>
+        
+        <div class="leaderboard-container">
+            <div class="leaderboard-header">
+                <h2 class="leaderboard-title" id="leaderboard-title">Таблица лидеров по вращениям</h2>
+                <p class="leaderboard-description" id="leaderboard-description">
+                    Игроки с наибольшим количеством вращений рулетки
+                </p>
+            </div>
+            
+            <div id="leaderboard-content">
+                <div class="loading">Загрузка таблицы лидеров...</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script>
+        const API_URL = window.location.origin;
+        let currentLeaderboardType = 'total_spins';
+        
+        // Leaderboard type configurations
+        const leaderboardConfigs = {
+            total_spins: {
+                title: 'Таблица лидеров по вращениям',
+                description: 'Игроки с наибольшим количеством вращений рулетки',
+                icon: '🎯'
+            },
+            rare_slimes: {
+                title: 'Таблица лидеров по редким слаймам',
+                description: 'Игроки, нашедшие больше всего редких слаймов',
+                icon: '⭐'
+            },
+            total_slimes: {
+                title: 'Таблица лидеров по общему количеству',
+                description: 'Игроки с наибольшим общим количеством слаймов',
+                icon: '📦'
+            },
+            collections_completed: {
+                title: 'Таблица лидеров по коллекциям',
+                description: 'Игроки, завершившие больше всего коллекций',
+                icon: '🏅'
+            }
+        };
+        
+        // Initialize the page
+        document.addEventListener('DOMContentLoaded', function() {
+            loadLeaderboard(currentLeaderboardType);
+            setupEventListeners();
+        });
+        
+        function setupEventListeners() {
+            // Tab switching
+            document.querySelectorAll('.leaderboard-tab').forEach(tab => {
+                tab.addEventListener('click', function() {
+                    const type = this.getAttribute('data-type');
+                    switchLeaderboard(type);
+                });
+            });
+        }
+        
+        function switchLeaderboard(type) {
+            // Update active tab
+            document.querySelectorAll('.leaderboard-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelector(`[data-type="${type}"]`).classList.add('active');
+            
+            // Update current type and load data
+            currentLeaderboardType = type;
+            loadLeaderboard(type);
+        }
+        
+        async function loadLeaderboard(type) {
+            const content = document.getElementById('leaderboard-content');
+            const title = document.getElementById('leaderboard-title');
+            const description = document.getElementById('leaderboard-description');
+            
+            // Show loading state
+            content.innerHTML = '<div class="loading">Загрузка таблицы лидеров...</div>';
+            
+            // Update header
+            const config = leaderboardConfigs[type];
+            title.textContent = config.title;
+            description.textContent = config.description;
+            
+            try {
+                const response = await axios.get(`${API_URL}/api/leaderboard/?type=${type}`);
+                const data = response.data;
+                
+                if (data.leaderboard && data.leaderboard.length > 0) {
+                    renderLeaderboard(data.leaderboard);
+                } else {
+                    showEmptyState();
+                }
+            } catch (error) {
+                console.error('Error loading leaderboard:', error);
+                showError('Ошибка загрузки таблицы лидеров');
+            }
+        }
+        
+        function renderLeaderboard(leaderboard) {
+            const content = document.getElementById('leaderboard-content');
+            
+            const list = document.createElement('ul');
+            list.className = 'leaderboard-list';
+            
+            leaderboard.forEach((player, index) => {
+                const item = document.createElement('li');
+                item.className = `leaderboard-item rank-${player.rank}`;
+                
+                const rankClass = player.rank <= 3 ? `rank-${player.rank}` : '';
+                
+                item.innerHTML = `
+                    <div class="rank-number">${player.rank}</div>
+                    <div class="player-info">
+                        <div class="player-name">${player.username}</div>
+                        <div class="player-value">${formatValue(player.value)}</div>
+                    </div>
+                `;
+                
+                list.appendChild(item);
+            });
+            
+            content.innerHTML = '';
+            content.appendChild(list);
+        }
+        
+        function formatValue(value) {
+            if (currentLeaderboardType === 'total_spins') {
+                return `${value.toLocaleString()} вращений`;
+            } else if (currentLeaderboardType === 'rare_slimes') {
+                return `${value.toLocaleString()} редких слаймов`;
+            } else if (currentLeaderboardType === 'total_slimes') {
+                return `${value.toLocaleString()} слаймов`;
+            } else if (currentLeaderboardType === 'collections_completed') {
+                return `${value} коллекций`;
+            }
+            return value.toLocaleString();
+        }
+        
+        function showEmptyState() {
+            const content = document.getElementById('leaderboard-content');
+            content.innerHTML = `
+                <div class="empty-state">
+                    <h3>Пока нет данных</h3>
+                    <p>Будьте первым, кто достигнет результатов в этой категории!</p>
+                </div>
+            `;
+        }
+        
+        function showError(message) {
+            const content = document.getElementById('leaderboard-content');
+            content.innerHTML = `
+                <div class="error">
+                    <h3>Ошибка</h3>
+                    <p>${message}</p>
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>
