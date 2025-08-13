@@ -18,10 +18,14 @@ def create_default_crafts(apps, schema_editor):
         }
     )
     if created:
-        green_slime = SlimeType.objects.get(name="Зелёный Слайм")
-        blue_slime = SlimeType.objects.get(name="Синий Слайм")
-        CraftIngredient.objects.create(recipe=amulet_of_luck, slime_type=green_slime, amount=10)
-        CraftIngredient.objects.create(recipe=amulet_of_luck, slime_type=blue_slime, amount=5)
+        try:
+            green_slime = SlimeType.objects.get(name="Зелёный Слайм")
+            blue_slime = SlimeType.objects.get(name="Синий Слайм")
+            CraftIngredient.objects.create(recipe=amulet_of_luck, slime_type=green_slime, amount=10)
+            CraftIngredient.objects.create(recipe=amulet_of_luck, slime_type=blue_slime, amount=5)
+        except SlimeType.DoesNotExist:
+            # Skip ingredient creation if slime types don't exist yet
+            pass
 
     # Рецепт 2: Амулет скорости
     amulet_of_speed, created = CraftRecipe.objects.get_or_create(
@@ -34,10 +38,14 @@ def create_default_crafts(apps, schema_editor):
         }
     )
     if created:
-        red_slime = SlimeType.objects.get(name="Красный Слайм")
-        yellow_slime = SlimeType.objects.get(name="Жёлтый Слайм")
-        CraftIngredient.objects.create(recipe=amulet_of_speed, slime_type=red_slime, amount=10)
-        CraftIngredient.objects.create(recipe=amulet_of_speed, slime_type=yellow_slime, amount=5)
+        try:
+            red_slime = SlimeType.objects.get(name="Красный Слайм")
+            yellow_slime = SlimeType.objects.get(name="Жёлтый Слайм")
+            CraftIngredient.objects.create(recipe=amulet_of_speed, slime_type=red_slime, amount=10)
+            CraftIngredient.objects.create(recipe=amulet_of_speed, slime_type=yellow_slime, amount=5)
+        except SlimeType.DoesNotExist:
+            # Skip ingredient creation if slime types don't exist yet
+            pass
 
 
 class Migration(migrations.Migration):
