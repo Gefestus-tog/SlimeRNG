@@ -1,6 +1,17 @@
 version: '3.9'
 
 services:
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: slime_rng
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
   web:
     build: .
     image: slimerng-web:latest
@@ -13,14 +24,22 @@ services:
       - SESSION_COOKIE_SECURE=0
       - CSRF_COOKIE_SECURE=0
       - CSRF_TRUSTED_ORIGINS=http://localhost:8000,http://127.0.0.1:8000
+      - DB_NAME=slime_rng
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - DB_HOST=db
+      - DB_PORT=5432
     volumes:
       - .:/app
       - static_data:/app/staticfiles
       - media_data:/app/media
+    depends_on:
+      - db
     command: ["gunicorn", "core.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "3", "--timeout", "60"]
 
 volumes:
   static_data:
   media_data:
+  postgres_data:
 
 
