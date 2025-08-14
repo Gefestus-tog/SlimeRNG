@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM python:3.12-slim
+FROM python:3.11-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
@@ -22,10 +22,7 @@ RUN pip install --upgrade pip && pip install -r requirements.txt
 
 # Project
 COPY . .
-RUN chmod +x entrypoint.sh
-
-# Collect static at build time (optional for prod)
-RUN python manage.py collectstatic --noinput
+RUN chmod +x /app/entrypoint.sh
 
 # Keep root to ensure write perms on bind mounts like /app/db
 
